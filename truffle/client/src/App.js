@@ -2,7 +2,7 @@ import logo from './logo.svg';
 import './App.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
-import { web3init, web3Reload } from './store/connectSlice';
+import { web3init, web3Reload, swap } from './store/connectSlice';
 
 function App() {
   const address = useSelector((state) => {
@@ -61,6 +61,7 @@ function App() {
       </div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={async () => signmsg()}>Sign</button><br></br>
+      <button onClick={() => dispatch(swap())}>click</button><br></br>
       <div>{accessMsg}</div>
 
 
