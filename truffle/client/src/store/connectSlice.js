@@ -55,7 +55,10 @@ export const web3Reload = createAsyncThunk(
                 const DAIaddress = "0xad6d458402f60fd3bd25163575031acdce07538d"
                 const uniswapV2constract = await new web3.eth.Contract(UniswapV2Router02.abi, uniswapv2address)
                 // const WETH = await uniswapV2constract.methods.WETH().call()
+
                 // const WETHcontract = await new web3.eth.Contract(WETHcon.abi, WETH)
+
+                await thunkAPI.dispatch(uniswapSdkP({ web3: web3 }))
 
                 console.log(address)
                 return {
@@ -82,23 +85,54 @@ export const WETHapprove = createAsyncThunk(
     }
 )
 
+const DAI = createAsyncThunk(
+    "DAI",
+    async (data, thunkAPI) => {
+        const { web3, address, uniswapV2constract } = thunkAPI.getState().connectReducer
+        const DAItoken = new Token(
+            ChainId.ROPSTEN,
+            await web3.utils.toChecksumAddress("0xad6d458402f60fd3bd25163575031acdce07538d"),
+            18
+        );
+        return DAItoken
+    }
+)
+
+export const getDAI_ETHprice = createAsyncThunk(
+    'getDAI_ETHprice',
+    async (data, thunkAPI) => {
+        try {
+            console.log(DAI().address);
+        } catch (error) {
+            console.log(error)
+        }
+
+    }
+)
+
 export const uniswapSdkP = createAsyncThunk(
     'uniswapSdkP',
     async (data, thunkAPI) => {
         try {
-
             const { web3, address, uniswapV2constract } = thunkAPI.getState().connectReducer
+            if (web3 == null)
+                web3 = data.web3
+
             const chainId = ChainId.ROPSTEN
             const DAI = new Token(
                 ChainId.ROPSTEN,
                 web3.utils.toChecksumAddress("0xad6d458402f60fd3bd25163575031acdce07538d"),
                 18
             );
+            console.log(DAI.address)
             const weth = WETH[chainId]
             const pair = await Fetcher.fetchPairData(DAI, weth);
             const route = new Route([pair], weth)
             console.log(route.midPrice.toSignificant(6))
             console.log(route.midPrice.invert().toSignificant(6))
+            return {
+                DAI
+            }
 
         } catch (error) {
 
@@ -106,7 +140,8 @@ export const uniswapSdkP = createAsyncThunk(
     }
 )
 
-export const swap = createAsyncThunk(
+
+export const swapETHForTokens = createAsyncThunk(
     'swap',
     async (data, thunkAPI) => {
         try {
@@ -183,7 +218,8 @@ const connectSlice = createSlice(
             contractName: null,
             uniswapV2constract: null,
             DAIaddress: null,
-            WETH: null
+            WETH: null,
+            DAI: null
         },
         reducers: {
 
@@ -207,6 +243,7 @@ const connectSlice = createSlice(
                     state.address = action.payload.address
                     state.uniswapV2constract = action.payload.uniswapV2constract
                     state.DAIaddress = action.payload.DAIaddress
+                    state.DAI = action.payload.DAI
                     //        state.WETH = action.payload.WETH
                     state.contractName = action.payload.contractName
                 } catch (error) {

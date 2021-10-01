@@ -2,9 +2,54 @@ import logo from './logo.svg';
 import './App.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { useEffect, useState } from 'react';
-import { web3init, web3Reload, swap } from './store/connectSlice';
+import { web3init, web3Reload, swapETHForTokens, getDAI_ETHprice, uniswapSdkP } from './store/connectSlice';
+import { ApolloClient } from "apollo-client";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import { HttpLink } from "apollo-link-http";
+import gql from "graphql-tag";
+import { useQuery } from "@apollo/react-hooks";
+
+
+
+const DAI_QUERY = gql`
+  query tokens($tokenAddress: Bytes!) {
+    tokens(where: { id: $tokenAddress }) {
+      derivedETH
+      totalLiquidity
+    }
+  }
+`;
+
+const ETH_PRICE_QUERY = gql`
+  query ethPrice {
+    bundle(id: "1") {
+      ethPrice
+    }
+  }
+`;
+
+export const client = new ApolloClient({
+  link: new HttpLink({
+    uri: "https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2",
+  }),
+  cache: new InMemoryCache(),
+});
 
 function App() {
+
+  const { loading: ethLoading, data: ethPriceData } = useQuery(ETH_PRICE_QUERY);
+  const { loading: daiLoading, data: daiData } = useQuery(DAI_QUERY, {
+    variables: {
+      tokenAddress: "0x6b175474e89094c44da98b954eedeac495271d0f",
+    },
+  });
+
+
+
+  const daiPriceInEth = daiData && daiData.tokens[0].derivedETH;
+  const daiTotalLiquidity = daiData && daiData.tokens[0].totalLiquidity;
+  //const ethPriceInUSD = ethPriceData && ethPriceData.bundles[0].ethPrice;
+
   const address = useSelector((state) => {
     return state.connectReducer.address
   })
@@ -42,7 +87,8 @@ function App() {
 
   }
 
-  console.log(address)
+
+
 
   return (
     <div className="App">
@@ -61,10 +107,24 @@ function App() {
       </div>
       <button onClick={() => connectWallet()}>Connect</button>
       <button onClick={async () => signmsg()}>Sign</button><br></br>
-      <button onClick={() => dispatch(swap())}>click</button><br></br>
+      <button onClick={() => dispatch(uniswapSdkP())}>click</button><br></br>
       <div>{accessMsg}</div>
 
-
+      <div>
+        Dai price:{" "}
+        {ethLoading || daiLoading
+          ? "Loading token data..."
+          : "$" +
+          // parse responses as floats and fix to 2 decimals
+          (parseFloat(daiPriceInEth) * parseFloat(1)).toFixed(2)}
+      </div>
+      <div>
+        Dai total liquidity:{" "}
+        {daiLoading
+          ? "Loading token data..."
+          : // display the total amount of DAI spread across all pools
+          parseFloat(daiTotalLiquidity).toFixed(0)}
+      </div>
 
     </div >
   );
